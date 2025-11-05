@@ -20,7 +20,7 @@ const TweetList = ({ route, navigation }) => {
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [lastDoc, setLastDoc] = useState(null); // cursor timestamp (ms) o null
+  const [lastDoc, setLastDoc] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const PAGE_SIZE = 10;
 
@@ -40,7 +40,7 @@ const TweetList = ({ route, navigation }) => {
         setTweets(prev => [...prev, ...newTweets]);
       }
 
-      setLastDoc(lastVisible); // número (ms) o null
+      setLastDoc(lastVisible);
       setHasMore(newTweets.length === PAGE_SIZE);
     } catch (error) {
       const msg = String(error?.message || '');
@@ -138,7 +138,6 @@ const TweetList = ({ route, navigation }) => {
     );
   };
 
-  // Carga inicial
   if (loading && tweets.length === 0) {
     return (
       <View style={twitterStyles.container}>
@@ -196,7 +195,6 @@ const TweetList = ({ route, navigation }) => {
         }
       />
 
-      {/* FAB: crear nuevo tweet */}
       <FAB
         icon="pencil"
         style={{

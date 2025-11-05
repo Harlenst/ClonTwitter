@@ -14,13 +14,12 @@ const FollowingList = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Cursor numérico (offset sobre el arreglo de IDs); null = no hay más
   const [cursor, setCursor] = useState(0);
 
   const loadFollowing = async (reset = false) => {
     try {
       const currentCursor = reset ? 0 : cursor;
-      if (currentCursor === null) return; // no hay más páginas
+      if (currentCursor === null) return;
 
       const { users: newUsers, lastVisible } = await getFollowingUsers(
         profile.id,
@@ -31,7 +30,6 @@ const FollowingList = ({ route, navigation }) => {
       if (reset) setUsers(newUsers);
       else setUsers(prev => [...prev, ...newUsers]);
 
-      // lastVisible es el próximo cursor (número) o null si no hay más
       setCursor(lastVisible);
     } catch (e) {
       console.error('FollowingList error:', e);
@@ -46,7 +44,6 @@ const FollowingList = ({ route, navigation }) => {
     setCursor(0);
     setLoading(true);
     loadFollowing(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile.id]);
 
   const onRefresh = () => {

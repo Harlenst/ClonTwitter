@@ -3,14 +3,11 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, ScrollView, Alert } from 'react-native';
 import { Avatar, Card, Button } from 'react-native-paper';
 import Header from '../Components/Header';
-import { colors } from '../Styles/twitterStyles';
+import twitterStyles, { colors } from '../Styles/twitterStyles';
 import { followUser, unfollowUser } from '../Config/firebaseServices';
 
 const ViewProfile = ({ route, navigation }) => {
-  // profile = usuario logueado; user = usuario que estoy viendo (opcional)
   const { profile, user } = route.params || {};
-
-  // Si me pasaron `user`, es el perfil a visualizar; si no, muestro el mío
   const viewing = user || profile;
 
   if (!viewing) {
@@ -18,18 +15,21 @@ const ViewProfile = ({ route, navigation }) => {
     return null;
   }
 
-  const isOwnProfile = profile && viewing && profile.id === viewing.id;
+  const isOwnProfile = !!profile && !!viewing && profile.id === viewing.id;
 
-  // Estado local de seguimiento cuando estoy viendo a otro
-  const [isFollowing, setIsFollowing] = useState(
-    !isOwnProfile &&
-      Array.isArray(profile?.following) &&
-      profile.following.includes(viewing.id)
-  );
+  const [followingIds, setFollowingIds] = useState(Array.isArray(profile?.following) ? profile.following : []);
+  const [followersCount, setFollowersCount] = useState(Array.isArray(viewing?.followers) ? viewing.followers.length : 0);
+
+  const isFollowing = !isOwnProfile && followingIds.includes(viewing.id);
 
   const initials = useMemo(() => {
     return viewing.fullName
-      ? viewing.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+      ? viewing.fullName
+          .split(' ')
+          .map((n) => n[0])
+          .join('')
+          .substring(0, 2)
+          .toUpperCase()
       : '?';
   }, [viewing.fullName]);
 
@@ -38,24 +38,24 @@ const ViewProfile = ({ route, navigation }) => {
     try {
       if (isFollowing) {
         await unfollowUser(profile.id, viewing.id);
-        // actualizar estados locales “bonito”
-        setIsFollowing(false);
-        if (Array.isArray(profile.following)) {
-          const i = profile.following.indexOf(viewing.id);
-          if (i >= 0) profile.following.splice(i, 1);
-        }
+        setFollowingIds((prev) => prev.filter((id) => id !== viewing.id));
+        setFollowersCount((c) => Math.max(0, c - 1));
       } else {
         await followUser(profile.id, viewing.id);
-        setIsFollowing(true);
-        profile.following = [...(profile.following || []), viewing.id];
+        setFollowingIds((prev) => [...prev, viewing.id]);
+        setFollowersCount((c) => c + 1);
       }
     } catch (e) {
       Alert.alert('Error', e.message || 'No se pudo actualizar el seguimiento');
     }
   };
 
+  const onSeeTweets = () => {
+    navigation.navigate('UserTweets', { user: viewing, profile: profile || viewing });
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <View style={twitterStyles.container}>
       <Header navigation={navigation} profile={profile || viewing} />
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -66,7 +66,7 @@ const ViewProfile = ({ route, navigation }) => {
             style={{ backgroundColor: colors.primary }}
             labelStyle={{ fontSize: 32, fontWeight: '700' }}
           />
-          <Text style={{ color: '#FFF', fontSize: 24, fontWeight: '700', marginTop: 12 }}>
+          <Text style={{ color: colors.textPrimary, fontSize: 24, fontWeight: '700', marginTop: 12 }}>
             {viewing.fullName}
           </Text>
           <Text style={{ color: colors.textSecondary, fontSize: 16 }}>
@@ -82,32 +82,43 @@ const ViewProfile = ({ route, navigation }) => {
               {isFollowing ? 'Siguiendo' : 'Seguir'}
             </Button>
           )}
+
+          <Button
+            mode="outlined"
+            style={{ marginTop: 12 }}
+            onPress={onSeeTweets}
+          >
+            Ver tweets
+          </Button>
         </View>
 
-        <Card style={{ backgroundColor: '#111', marginBottom: 12 }}>
+        <Card style={{ backgroundColor: colors.surface, marginBottom: 12 }}>
           <Card.Content>
-            <Text style={{ color: '#FFF' }}>Email: {viewing.email}</Text>
-            {viewing.phone && <Text style={{ color: '#FFF', marginTop: 4 }}>Tel: {viewing.phone}</Text>}
-            {viewing.description && <Text style={{ color: '#FFF', marginTop: 8 }}>{viewing.description}</Text>}
+            <Text style={{ color: colors.textPrimary }}>Email: {viewing.email || '—'}</Text>
+            {viewing.phone ? (
+              <Text style={{ color: colors.textPrimary, marginTop: 4 }}>Tel: {viewing.phone}</Text>
+            ) : null}
+            {viewing.description ? (
+              <Text style={{ color: colors.textPrimary, marginTop: 8 }}>{viewing.description}</Text>
+            ) : null}
           </Card.Content>
         </Card>
 
         <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginVertical: 16 }}>
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '600' }}>
-              {viewing.following?.length || 0}
+            <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '600' }}>
+              {Array.isArray(viewing.following) ? viewing.following.length : 0}
             </Text>
             <Text style={{ color: colors.textSecondary }}>Siguiendo</Text>
           </View>
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ color: '#FFF', fontSize: 18, fontWeight: '600' }}>
-              {viewing.followers?.length || 0}
+            <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '600' }}>
+              {followersCount}
             </Text>
             <Text style={{ color: colors.textSecondary }}>Seguidores</Text>
           </View>
         </View>
 
-        {/* Navegación a listas solo si estoy viendo MI perfil */}
         {isOwnProfile && (
           <>
             <Button

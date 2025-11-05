@@ -1,11 +1,9 @@
-// App.js
 import React from 'react';
 import { StatusBar } from 'react-native';
 import { NavigationContainer, DefaultTheme as NavDefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { PaperProvider, MD3LightTheme as PaperDefaultTheme } from 'react-native-paper';
 
-// Screens
 import LogIn from './src/Screens/LogIn';
 import SignUp from './src/Screens/SignUp';
 import PostTweet from './src/Screens/PostTweet';
@@ -15,13 +13,11 @@ import TweetDetail from './src/Screens/TweetDetail';
 import FollowingList from './src/Screens/FollowingList';
 import FollowersList from './src/Screens/FollowersList';
 import SearchProfiles from './src/Screens/SearchProfiles';
-
-// Tema unificado (sin negro ni azul)
+import UserTweets from './src/Screens/UserTweets';
 import { colors } from './src/Styles/twitterStyles';
 
 const Stack = createNativeStackNavigator();
 
-// 🟣 Tema para React Native Paper
 const paperTheme = {
   ...PaperDefaultTheme,
   colors: {
@@ -35,10 +31,8 @@ const paperTheme = {
     onSurfaceVariant: colors.textSecondary,
     error: colors.error,
   },
-  roundness: 14,
 };
 
-// 🟣 Tema para React Navigation (sin negro/azul)
 const navTheme = {
   ...NavDefaultTheme,
   colors: {
@@ -67,6 +61,7 @@ export default function App() {
           <Stack.Screen name="FollowingList" component={FollowingList} />
           <Stack.Screen name="FollowersList" component={FollowersList} />
           <Stack.Screen name="SearchProfiles" component={SearchProfiles} />
+          <Stack.Screen name="UserTweets" component={UserTweets} />
         </Stack.Navigator>
       </NavigationContainer>
     </PaperProvider>

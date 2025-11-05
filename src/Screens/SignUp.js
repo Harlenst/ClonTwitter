@@ -17,7 +17,6 @@ const SignUp = ({ navigation }) => {
   const [formValid, setFormValid] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Autogenerar username desde el email solo si el usuario no lo ha tocado manualmente
   useEffect(() => {
     if (email.includes('@') && username.trim().length < 3) {
       const generated = email
@@ -26,9 +25,8 @@ const SignUp = ({ navigation }) => {
         .replace(/[^a-z0-9_]/g, '');
       setUsername(generated);
     }
-  }, [email]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [email]); 
 
-  // Validación de formulario
   useEffect(() => {
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     const isValid =
@@ -51,7 +49,7 @@ const SignUp = ({ navigation }) => {
   });
 
   const handleSave = useCallback(async () => {
-    if (loading) return; // evita doble submit
+    if (loading) return; 
     if (!formValid) {
       Alert.alert('Error', 'Completa todos los campos correctamente');
       return;
@@ -66,7 +64,7 @@ const SignUp = ({ navigation }) => {
       navigation.replace('TweetList', { profile });
     } catch (error) {
       let msg = error?.message || 'No se pudo crear la cuenta';
-      // Mapeo de errores más comunes
+   
       if (msg === 'TIMEOUT_FIRESTORE') {
         msg = 'No se logró conectar con Firestore en este momento. Revisa tu Internet e inténtalo de nuevo';
       } else if (/correo|email/i.test(msg)) {

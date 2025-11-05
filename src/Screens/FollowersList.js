@@ -1,4 +1,4 @@
-// src/Screens/FollowersList.js
+
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, Text, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { Card, Avatar, Button } from 'react-native-paper';
@@ -14,8 +14,6 @@ const FollowersList = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Guardamos el último fullName para usar en startAfter;
-  // null = primera página; también usamos null para "no hay más"
   const [lastFullName, setLastFullName] = useState(null);
 
   const loadFollowers = async (reset = false) => {
@@ -29,7 +27,6 @@ const FollowersList = ({ route, navigation }) => {
       if (reset) setUsers(newUsers);
       else setUsers(prev => [...prev, ...newUsers]);
 
-      // En el service, lastVisible = último fullName o null
       setLastFullName(lastVisible);
     } catch (error) {
       console.error('FollowersList error:', error);
@@ -44,7 +41,7 @@ const FollowersList = ({ route, navigation }) => {
     setLastFullName(null);
     setLoading(true);
     loadFollowers(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [profile.id]);
 
   const onRefresh = () => {

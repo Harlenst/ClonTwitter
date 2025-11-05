@@ -1,4 +1,3 @@
-// src/Config/firebaseServices.js
 import { app } from './firebaseConfig';
 import {
   initializeFirestore,
@@ -19,14 +18,12 @@ import {
   documentId,
 } from 'firebase/firestore';
 
-// Firestore para RN, forzando long-polling (evita cuelgues por red)
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
   experimentalAutoDetectLongPolling: false,
   useFetchStreams: false,
 });
 
-// === Util de timeout para evitar loaders infinitos ===
 const withTimeout = (promise, ms = 15000) =>
   Promise.race([
     promise,
@@ -34,10 +31,6 @@ const withTimeout = (promise, ms = 15000) =>
       setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE')), ms)
     ),
   ]);
-
-/* =========================
-   LISTAS: SIGUIENDO / SEGUIDORES
-   ========================= */
 
 export const getFollowingUsers = async (userId, lastDocCursor = null, pageSize = 10) => {
   try {
@@ -94,9 +87,6 @@ export const getFollowersUsers = async (userId, lastFullName = null, pageSize = 
   }
 };
 
-/* =========================
-   FOLLOW / UNFOLLOW
-   ========================= */
 
 export const followUser = async (currentUserId, targetUserId) => {
   try {
@@ -132,9 +122,7 @@ export const unfollowUser = async (currentUserId, targetUserId) => {
   }
 };
 
-/* =========================
-   PERFIL / LOGIN (sin Auth)
-   ========================= */
+
 
 export const createProfile = async (profileData) => {
   try {
@@ -206,9 +194,7 @@ export const signInWithEmail = async ({ email, password }) => {
   }
 };
 
-/* =========================
-   TWEETS / FEED
-   ========================= */
+
 
 export const addTweet = async (tweetData) => {
   try {
@@ -227,14 +213,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 
-// …
 
-/**
- * Feed con cursor por timestamp (ms).
- * - Primera página: lastTimestamp === null
- * - Siguientes: lastTimestamp = número en ms del último tweet mostrado
- * Soporta >10 seguidos haciendo queries por lotes de 10 IDs.
- */
 export const getFeedTweets = async (userId, lastTimestamp = null, pageSize = 10) => {
   try {
     if (!userId) throw new Error('userId es requerido');
@@ -246,13 +225,13 @@ export const getFeedTweets = async (userId, lastTimestamp = null, pageSize = 10)
     const allIds = [...new Set([userId, ...following])];
     if (allIds.length === 0) return { tweets: [], lastVisible: null };
 
-    // Partir en lotes de 10 para 'in'
+   
     const idBatches = [];
     for (let i = 0; i < allIds.length; i += 10) idBatches.push(allIds.slice(i, i + 10));
 
     const collected = [];
     for (const ids of idBatches) {
-      // Base query
+      
       let qBase = query(
         collection(db, 'tweets'),
         where('authorId', 'in', ids),
@@ -260,7 +239,7 @@ export const getFeedTweets = async (userId, lastTimestamp = null, pageSize = 10)
         limit(pageSize) // cada lote devuelve máx pageSize
       );
 
-      // Si es siguiente página, filtrar por timestamp <
+     
       if (lastTimestamp) {
         qBase = query(
           collection(db, 'tweets'),
@@ -282,7 +261,6 @@ export const getFeedTweets = async (userId, lastTimestamp = null, pageSize = 10)
       });
     }
 
-    // Unificar, ordenar y paginar en cliente
     const uniq = Array.from(new Map(collected.map(t => [t.id, t])).values());
     uniq.sort((a, b) => b.timestamp - a.timestamp);
 
@@ -291,8 +269,7 @@ export const getFeedTweets = async (userId, lastTimestamp = null, pageSize = 10)
 
     return { tweets: page, lastVisible: nextCursor };
   } catch (error) {
-    // Si Firestore te pide índice compuesto, va a caer aquí.
-    // Muestra el error arriba para que la UI lo capture.
+   
     console.error('getFeedTweets error:', error);
     throw error;
   }

@@ -1,38 +1,51 @@
+// src/Styles/stylesLogin.js
 import { StyleSheet } from 'react-native';
-import { colors, radii, spacing, shadow } from './twitterStyles';
+import { colors } from './twitterStyles';
 
 export default StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    justifyContent: 'center',
-    padding: spacing.lg,
   },
-  card: {
-    ...shadow.card,
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    justifyContent: 'center',
+  },
+  logoX: {
+    fontSize: 64,
+    color: colors.primary,
+    textAlign: 'center',
+    marginBottom: 40,
+    fontWeight: '900',
   },
   title: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: '900',
+    color: colors.text,
     textAlign: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: 40,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   input: {
-    backgroundColor: colors.inputBg,
-    marginBottom: spacing.md,
+    marginVertical: 8,
+    backgroundColor: colors.surfaceLight,
+    borderRadius: 12,
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    marginTop: spacing.md,
+    borderRadius: 999,
+    paddingVertical: 14,
+    marginTop: 16,
   },
   link: {
-    color: colors.primary,
-    textAlign: 'center',
-    marginTop: spacing.sm,
+    marginTop: 12,
   },
 });

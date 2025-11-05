@@ -8,7 +8,7 @@ import styles from '../Styles/stylesSearchProfiles';
 import twitterStyles, { colors } from '../Styles/twitterStyles';
 
 const SearchProfiles = ({ route, navigation }) => {
-  const { profile: current } = route.params || {}; // perfil actual
+  const { profile: current } = route.params || {}; 
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -68,7 +68,6 @@ const SearchProfiles = ({ route, navigation }) => {
     try {
       if (isFollowing) {
         await unfollowUser(current.id, target.id);
-        // Reflejar en UI localmente
         current.following = current.following.filter(id => id !== target.id);
       } else {
         await followUser(current.id, target.id);
@@ -96,8 +95,8 @@ const SearchProfiles = ({ route, navigation }) => {
       <TouchableOpacity
         onPress={() =>
           navigation.navigate('ViewProfile', {
-            profile: current || item, // si no hay current, al menos abre el perfil del item
-            user: item,              // usuario que estoy viendo (para follow/unfollow en Vista de perfil)
+            profile: current || item, 
+            user: item,             
           })
         }
       >
