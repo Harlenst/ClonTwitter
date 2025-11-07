@@ -20,7 +20,7 @@ const AVATAR_FALLB = require('../Assets/default_avatar.png');
 const AVATAR_SIZE = 48;
 const PAGE_SIZE = 10;
 
-// Helper local para fecha/hora
+
 const formatDateTime = (ts) => {
   let d = ts?.toDate ? ts.toDate() : ts;
   if (typeof d === 'number') d = new Date(d);
@@ -73,7 +73,6 @@ const TweetList = ({ route, navigation }) => {
       setLoading(true);
       loadTweets(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
 
   useEffect(() => {
