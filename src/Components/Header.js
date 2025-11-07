@@ -1,12 +1,9 @@
 // src/Components/Header.js
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { IconButton } from 'react-native-paper';
+import { Image, TouchableOpacity, View, Text } from 'react-native';
 import twitterStyles, { colors } from '../Styles/twitterStyles';
 
 const Header = ({ navigation, profile }) => {
   if (!profile) return null;
-
   const goHome = () => navigation.replace('TweetList', { profile });
   const goMyProfile = () => navigation.navigate('ViewProfile', { profile });
   const goSearch = () => navigation.navigate('SearchProfiles', { profile });
@@ -14,24 +11,28 @@ const Header = ({ navigation, profile }) => {
 
   return (
     <View style={twitterStyles.headerBar}>
-      {/* Marca → INICIO */}
-      <TouchableOpacity onPress={goHome}>
-        <Text style={{ fontSize: 24, fontWeight: '900', color: colors.primary, letterSpacing: -0.5 }}>
-          HY
-        </Text>
+      <TouchableOpacity onPress={goHome} style={{ paddingRight: 8 }}>
+        <Image
+          source={require('../Assets/logo_brand.png')}
+          style={{ width: 28, height: 28 }}
+          resizeMode="contain"
+        />
       </TouchableOpacity>
 
-      {/* @username */}
       <Text style={twitterStyles.headerTitle}>@{profile.username}</Text>
 
-      {/* Acciones */}
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <IconButton icon="magnify" size={24} onPress={goSearch} color={colors.textPrimary} />
-        <IconButton icon="account-circle" size={24} onPress={goMyProfile} color={colors.textPrimary} />
-        <IconButton icon="logout" size={24} onPress={logout} color={colors.textSecondary} />
+        <TouchableOpacity onPress={goSearch} style={{ paddingHorizontal: 6 }}>
+          <Image source={require('../Assets/icon_search.png')} style={{ width: 22, height: 22 }} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={goMyProfile} style={{ paddingHorizontal: 6 }}>
+          <Image source={require('../Assets/icon_profile.png')} style={{ width: 22, height: 22 }} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={logout} style={{ paddingHorizontal: 6 }}>
+          <Image source={require('../Assets/icon_logout.png')} style={{ width: 22, height: 22 }} />
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
-
 export default Header;

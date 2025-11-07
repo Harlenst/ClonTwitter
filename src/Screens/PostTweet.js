@@ -27,12 +27,20 @@ const PostTweet = ({ route, navigation }) => {
       authorEmail: profile.email || '',
       likes: 0,
       retweets: 0,
+      // importa que tu addTweet ponga createdAt con serverTimestamp en el servicio
     };
 
     try {
       await addTweet(tweetData);
       Alert.alert('Éxito', 'Tweet publicado', [
-        { text: 'OK', onPress: () => { setTweetText(''); navigation.goBack(); } },
+        {
+          text: 'OK',
+          onPress: () => {
+            setTweetText('');
+            // Volver al feed y forzar un refresh UNA sola vez, sin listeners
+            navigation.replace('TweetList', { profile, _forceRefresh: Date.now() });
+          },
+        },
       ]);
     } catch (error) {
       const msg = String(error?.message || '');
@@ -48,7 +56,7 @@ const PostTweet = ({ route, navigation }) => {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={{ flex: 1, backgroundColor: '#000' }}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
         <Header navigation={navigation} profile={profile} />
 
         <ScrollView contentContainerStyle={styles.container}>

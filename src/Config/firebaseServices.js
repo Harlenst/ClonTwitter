@@ -135,7 +135,7 @@ export const createProfile = async (profileData) => {
     const emailLower = email.trim().toLowerCase();
     const usernameLower = username.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-    // keywords
+    
     const keywords = new Set();
     const fullName = `${name?.trim() || ''} ${lastName?.trim() || ''}`.trim();
     const fullNameLower = fullName.toLowerCase();
@@ -144,7 +144,6 @@ export const createProfile = async (profileData) => {
     });
     for (let i = 1; i <= usernameLower.length; i++) keywords.add(usernameLower.substring(0, i));
 
-    // Validaciones de unicidad con timeout
     const [emailSnap, usernameSnap] = await withTimeout(Promise.all([
       getDocs(query(collection(db, 'users'), where('email', '==', emailLower), limit(1))),
       getDocs(query(collection(db, 'users'), where('username', '==', usernameLower), limit(1))),
@@ -153,12 +152,11 @@ export const createProfile = async (profileData) => {
     if (!emailSnap.empty) throw new Error('Este email ya está registrado');
     if (!usernameSnap.empty) throw new Error('Este nombre de usuario no está disponible');
 
-    // Crear usuario
     const userRef = await withTimeout(addDoc(collection(db, 'users'), {
       ...profileData,
       email: emailLower,
       username: usernameLower,
-      password, // texto plano (sin Auth, como pediste)
+      password, 
       fullName: fullName || usernameLower,
       keywords: Array.from(keywords),
       createdAt: serverTimestamp(),
@@ -177,23 +175,24 @@ export const createProfile = async (profileData) => {
   }
 };
 
-export const signInWithEmail = async ({ email, password }) => {
+export const signInWithUsername = async ({ username, password }) => {
   try {
-    const emailLower = (email || '').trim().toLowerCase();
-    const snap = await withTimeout(getDocs(query(collection(db, 'users'), where('email', '==', emailLower), limit(1))));
+    const q = query(collection(db, 'users'), where('username', '==', username.toLowerCase()));
+    const snap = await getDocs(q);
+
     if (snap.empty) throw new Error('Usuario no encontrado');
 
-    const userDoc = snap.docs[0];
-    const user = userDoc.data();
+    const user = snap.docs[0].data();
+    const id = snap.docs[0].id;
+
     if (user.password !== password) throw new Error('Contraseña incorrecta');
 
-    return { id: userDoc.id, ...user };
+    return { id, ...user };
   } catch (error) {
-    console.error('Error en signInWithEmail:', error);
+    console.error('Error al iniciar sesión:', error);
     throw error;
   }
 };
-
 
 
 export const addTweet = async (tweetData) => {
@@ -209,7 +208,7 @@ export const addTweet = async (tweetData) => {
 };
 
 import {
-  // …tus imports…
+ 
   Timestamp,
 } from 'firebase/firestore';
 
@@ -236,7 +235,7 @@ export const getFeedTweets = async (userId, lastTimestamp = null, pageSize = 10)
         collection(db, 'tweets'),
         where('authorId', 'in', ids),
         orderBy('timestamp', 'desc'),
-        limit(pageSize) // cada lote devuelve máx pageSize
+        limit(pageSize) 
       );
 
      
@@ -273,4 +272,6 @@ export const getFeedTweets = async (userId, lastTimestamp = null, pageSize = 10)
     console.error('getFeedTweets error:', error);
     throw error;
   }
+
+  
 };

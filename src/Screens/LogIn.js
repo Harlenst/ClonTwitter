@@ -3,26 +3,26 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Alert } from 'react-native';
 import { Card, TextInput, Button } from 'react-native-paper';
 import styles from '../Styles/stylesLogin';
-import { signInWithEmail } from '../Config/firebaseServices';
+import { signInWithUsername } from '../Config/firebaseServices';
 
 const LogIn = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [hidePassword, setHidePassword] = useState(true);
   const [formValid, setFormValid] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setFormValid(email.trim() !== '' && password.trim() !== '');
-  }, [email, password]);
+    setFormValid(username.trim() !== '' && password.trim() !== '');
+  }, [username, password]);
 
   const handleLogin = async () => {
     if (!formValid) return Alert.alert('Error', 'Completa los campos');
 
     setLoading(true);
     try {
-      const profile = await signInWithEmail({ email, password });
-      if (!profile?.id) throw new Error('Error al cargar perfil');
+      const profile = await signInWithUsername({ username, password });
+      if (!profile?.id) throw new Error('Usuario o contraseña incorrectos');
       navigation.replace('TweetList', { profile });
     } catch (e) {
       Alert.alert('Error', e.message || 'Credenciales incorrectas');
@@ -40,12 +40,11 @@ const LogIn = ({ navigation }) => {
         <Card style={styles.card}>
           <Card.Content>
             <TextInput
-              label="* Email"
-              value={email}
-              onChangeText={setEmail}
+              label="* Usuario"
+              value={username}
+              onChangeText={setUsername}
               style={styles.input}
               mode="outlined"
-              keyboardType="email-address"
               autoCapitalize="none"
             />
             <TextInput

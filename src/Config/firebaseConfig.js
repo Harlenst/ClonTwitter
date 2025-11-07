@@ -1,5 +1,6 @@
 // src/Config/firebaseConfig.js
 import { initializeApp } from 'firebase/app';
+import {getFirestore} from 'firebase/firestore';
 
 // Configuración del proyecto Firebase
 const firebaseConfig = {
@@ -13,3 +14,6 @@ const firebaseConfig = {
 
 // Inicializar la app Firebase
 export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+
+export default app;

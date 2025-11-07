@@ -4,7 +4,7 @@ import { View, Text, ScrollView, Alert } from 'react-native';
 import { Avatar, Card, Button } from 'react-native-paper';
 import Header from '../Components/Header';
 import twitterStyles, { colors } from '../Styles/twitterStyles';
-import { followUser, unfollowUser } from '../Config/firebaseServices';
+import { followUser, unfollowUser, getUserById } from '../Config/firebaseServices';
 
 const ViewProfile = ({ route, navigation }) => {
   const { profile, user } = route.params || {};
@@ -17,34 +17,44 @@ const ViewProfile = ({ route, navigation }) => {
 
   const isOwnProfile = !!profile && !!viewing && profile.id === viewing.id;
 
-  const [followingIds, setFollowingIds] = useState(Array.isArray(profile?.following) ? profile.following : []);
-  const [followersCount, setFollowersCount] = useState(Array.isArray(viewing?.followers) ? viewing.followers.length : 0);
+  const [followingIds, setFollowingIds] = useState(
+    Array.isArray(profile?.following) ? profile.following : []
+  );
+  const [followersCount, setFollowersCount] = useState(
+    Array.isArray(viewing?.followers) ? viewing.followers.length : 0
+  );
 
   const isFollowing = !isOwnProfile && followingIds.includes(viewing.id);
 
-  const initials = useMemo(() => {
-    return viewing.fullName
-      ? viewing.fullName
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .substring(0, 2)
-          .toUpperCase()
-      : '?';
-  }, [viewing.fullName]);
+  const initials = useMemo(
+    () => (viewing.fullName ? viewing.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '?'),
+    [viewing.fullName]
+  );
+
+  const quickRefreshCounts = async () => {
+    try {
+      const fresh = await getUserById(viewing.id); // lectura puntual, sin onSnapshot
+      if (fresh) {
+        setFollowersCount(Array.isArray(fresh.followers) ? fresh.followers.length : 0);
+      }
+    } catch {}
+  };
 
   const onToggleFollow = async () => {
     if (!profile?.id || !viewing?.id || isOwnProfile) return;
     try {
+      // optimista
       if (isFollowing) {
+        setFollowingIds(prev => prev.filter(id => id !== viewing.id));
+        setFollowersCount(c => Math.max(0, c - 1));
         await unfollowUser(profile.id, viewing.id);
-        setFollowingIds((prev) => prev.filter((id) => id !== viewing.id));
-        setFollowersCount((c) => Math.max(0, c - 1));
       } else {
+        setFollowingIds(prev => [...prev, viewing.id]);
+        setFollowersCount(c => c + 1);
         await followUser(profile.id, viewing.id);
-        setFollowingIds((prev) => [...prev, viewing.id]);
-        setFollowersCount((c) => c + 1);
       }
+      // lectura rápida para quedar consistentes
+      quickRefreshCounts();
     } catch (e) {
       Alert.alert('Error', e.message || 'No se pudo actualizar el seguimiento');
     }
@@ -74,20 +84,12 @@ const ViewProfile = ({ route, navigation }) => {
           </Text>
 
           {!isOwnProfile && profile?.id && viewing?.id !== profile.id && (
-            <Button
-              mode={isFollowing ? 'outlined' : 'contained'}
-              style={{ marginTop: 12 }}
-              onPress={onToggleFollow}
-            >
+            <Button mode={isFollowing ? 'outlined' : 'contained'} style={{ marginTop: 12 }} onPress={onToggleFollow}>
               {isFollowing ? 'Siguiendo' : 'Seguir'}
             </Button>
           )}
 
-          <Button
-            mode="outlined"
-            style={{ marginTop: 12 }}
-            onPress={onSeeTweets}
-          >
+          <Button mode="outlined" style={{ marginTop: 12 }} onPress={onSeeTweets}>
             Ver tweets
           </Button>
         </View>
@@ -95,12 +97,8 @@ const ViewProfile = ({ route, navigation }) => {
         <Card style={{ backgroundColor: colors.surface, marginBottom: 12 }}>
           <Card.Content>
             <Text style={{ color: colors.textPrimary }}>Email: {viewing.email || '—'}</Text>
-            {viewing.phone ? (
-              <Text style={{ color: colors.textPrimary, marginTop: 4 }}>Tel: {viewing.phone}</Text>
-            ) : null}
-            {viewing.description ? (
-              <Text style={{ color: colors.textPrimary, marginTop: 8 }}>{viewing.description}</Text>
-            ) : null}
+            {viewing.phone ? <Text style={{ color: colors.textPrimary, marginTop: 4 }}>Tel: {viewing.phone}</Text> : null}
+            {viewing.description ? <Text style={{ color: colors.textPrimary, marginTop: 8 }}>{viewing.description}</Text> : null}
           </Card.Content>
         </Card>
 
@@ -121,17 +119,10 @@ const ViewProfile = ({ route, navigation }) => {
 
         {isOwnProfile && (
           <>
-            <Button
-              mode="outlined"
-              onPress={() => navigation.navigate('FollowingList', { profile })}
-              style={{ marginBottom: 8 }}
-            >
+            <Button mode="outlined" onPress={() => navigation.navigate('FollowingList', { profile })} style={{ marginBottom: 8 }}>
               Ver siguiendo
             </Button>
-            <Button
-              mode="outlined"
-              onPress={() => navigation.navigate('FollowersList', { profile })}
-            >
+            <Button mode="outlined" onPress={() => navigation.navigate('FollowersList', { profile })}>
               Ver seguidores
             </Button>
           </>

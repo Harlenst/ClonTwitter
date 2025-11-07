@@ -15,7 +15,6 @@ import FollowersList from './src/Screens/FollowersList';
 import SearchProfiles from './src/Screens/SearchProfiles';
 import UserTweets from './src/Screens/UserTweets';
 import { colors } from './src/Styles/twitterStyles';
-
 const Stack = createNativeStackNavigator();
 
 const paperTheme = {
