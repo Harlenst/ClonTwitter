@@ -9,8 +9,6 @@ import { db } from '../Config/firebaseConfig';
 import { followUser, unfollowUser } from '../Config/firebaseServices'; 
 import { colors } from '../Styles/twitterStyles';
 
-// === USAMOS TUS IMÁGENES LOCALES ===
-// Asegúrate de que esta ruta sea correcta según tu estructura
 const ICON_SEARCH = require('../Assets/icon_search.png'); 
 
 const SearchProfiles = ({ route, navigation }) => {
