@@ -1,36 +1,34 @@
-import React, { useState, useCallback } from 'react'; // Importar useCallback
+// src/Screens/TweetDetail.js
+import React, { useState, useCallback } from 'react'; 
 import {
     View, Text, Image, TouchableOpacity, TextInput,
     KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator, FlatList
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native'; // <--- IMPORTANTE
+import { useFocusEffect } from '@react-navigation/native';
 import Header from '../Components/Header';
 import TweetItem from '../Components/TweetItem';
-import { addReply, getTweetReplies, getTweet } from '../Config/firebaseServices'; // Importar getTweet
+import { addReply, getTweetReplies, getTweet } from '../Config/firebaseServices';
 
 const AVATAR_FALLB = require('../Assets/default_avatar.png');
 
 const TweetDetail = ({ route, navigation }) => {
     const { tweet: initialTweet, profile } = route.params || {};
     
-    // Estado local para el tweet, así se actualiza si cambian los likes/replies
     const [currentTweet, setCurrentTweet] = useState(initialTweet);
     const [replyText, setReplyText] = useState('');
     const [replies, setReplies] = useState([]);
     const [sending, setSending] = useState(false);
 
-    // --- REFRESCAR AL ENTRAR ---
+    // Reload on focus
     useFocusEffect(
         useCallback(() => {
             if (!initialTweet?.id) return;
 
-            // 1. Cargar Respuestas
             const fetchReplies = async () => {
                 const loadedReplies = await getTweetReplies(initialTweet.id);
                 setReplies(loadedReplies);
             };
 
-            // 2. Recargar el Tweet (para actualizar contadores de likes/replies)
             const fetchTweetData = async () => {
                 const freshTweet = await getTweet(initialTweet.id);
                 if (freshTweet) {
@@ -51,39 +49,56 @@ const TweetDetail = ({ route, navigation }) => {
             const replyData = {
                 text: replyText.trim(),
                 authorId: profile.id,
-                authorName: profile.fullName || 'Usuario',
-                authorUsername: profile.username || 'usuario',
+                authorName: profile.fullName || 'User',
+                authorUsername: profile.username || 'user',
             };
 
             await addReply(currentTweet.id, replyData);
-            
-            // Limpiar y recargar todo
             setReplyText('');
             
-            // Actualizar respuestas
             const updatedReplies = await getTweetReplies(currentTweet.id);
             setReplies(updatedReplies);
             
-            // Actualizar contadores del tweet principal
             const updatedTweet = await getTweet(currentTweet.id);
             if (updatedTweet) setCurrentTweet(updatedTweet);
 
         } catch (error) {
-            alert('Error al enviar respuesta');
+            alert('Error sending reply');
         } finally {
             setSending(false);
         }
+    };
+
+    // Navigate to the profile of the reply author
+    const goToReplyProfile = (replyItem) => {
+        const targetUser = {
+            id: replyItem.authorId,
+            username: replyItem.authorUsername,
+            fullName: replyItem.authorName,
+        };
+        navigation.navigate('ViewProfile', { user: targetUser, profile });
     };
 
     if (!currentTweet || !profile) return null;
 
     const renderReply = ({ item }) => (
         <View style={styles.replyContainer}>
-            <Image source={AVATAR_FALLB} style={styles.replyAvatar} />
+            {/* Clickable Reply Avatar */}
+            <TouchableOpacity onPress={() => goToReplyProfile(item)}>
+                <Image source={AVATAR_FALLB} style={styles.replyAvatar} />
+            </TouchableOpacity>
+            
             <View style={styles.replyContent}>
                 <View style={styles.replyHeader}>
-                    <Text style={styles.replyName} numberOfLines={1}>{item.authorName}</Text>
-                    <Text style={styles.replyHandle} numberOfLines={1}>@{item.authorUsername}</Text>
+                    {/* Clickable Name & Handle */}
+                    <TouchableOpacity 
+                        style={{ flexDirection: 'row', flexShrink: 1, alignItems: 'center' }}
+                        onPress={() => goToReplyProfile(item)}
+                    >
+                        <Text style={styles.replyName} numberOfLines={1}>{item.authorName}</Text>
+                        <Text style={styles.replyHandle} numberOfLines={1}>@{item.authorUsername}</Text>
+                    </TouchableOpacity>
+                    
                     <Text style={styles.replyTime}>· {new Date(item.timestamp).toLocaleDateString()}</Text>
                 </View>
                 <Text style={styles.replyText}>{item.text}</Text>
@@ -104,13 +119,14 @@ const TweetDetail = ({ route, navigation }) => {
                 renderItem={renderReply}
                 ListHeaderComponent={() => (
                     <>
+                        {/* Main tweet uses TweetItem which has navigation built-in */}
                         <TweetItem 
-                            item={currentTweet} // Usamos el estado actualizado
+                            item={currentTweet} 
                             profile={profile} 
                             navigation={navigation} 
                         />
                         <View style={styles.divider} />
-                        {replies.length > 0 && <Text style={styles.repliesTitle}>Respuestas</Text>}
+                        {replies.length > 0 && <Text style={styles.repliesTitle}>Replies</Text>}
                     </>
                 )}
                 contentContainerStyle={{ paddingBottom: 80 }}
@@ -120,7 +136,7 @@ const TweetDetail = ({ route, navigation }) => {
                 <Image source={AVATAR_FALLB} style={styles.inputAvatar} />
                 <TextInput
                     style={styles.textInput}
-                    placeholder="Postea tu respuesta"
+                    placeholder="Post your reply"
                     value={replyText}
                     onChangeText={setReplyText}
                     multiline
@@ -133,7 +149,7 @@ const TweetDetail = ({ route, navigation }) => {
                     {sending ? (
                         <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                        <Text style={styles.sendButtonText}>Responder</Text>
+                        <Text style={styles.sendButtonText}>Reply</Text>
                     )}
                 </TouchableOpacity>
             </View>
@@ -148,10 +164,10 @@ const styles = StyleSheet.create({
     replyAvatar: { width: 36, height: 36, borderRadius: 18, marginRight: 10, backgroundColor: '#ccc' },
     replyContent: { flex: 1 },
     replyHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-    replyName: { fontWeight: 'bold', fontSize: 14, marginRight: 5 },
-    replyHandle: { color: '#657786', fontSize: 13, flexShrink: 1 },
-    replyTime: { color: '#657786', fontSize: 13 },
-    replyText: { fontSize: 14, color: '#14171A', lineHeight: 18 },
+    replyName: { fontWeight: 'bold', fontSize: 14, marginRight: 5, color: '#0F1419' },
+    replyHandle: { color: '#536471', fontSize: 13, flexShrink: 1 },
+    replyTime: { color: '#536471', fontSize: 13 },
+    replyText: { fontSize: 14, color: '#0F1419', lineHeight: 18 },
     inputContainer: {
         flexDirection: 'row', alignItems: 'center', padding: 12,
         borderTopWidth: 1, borderTopColor: '#EFF3F4', backgroundColor: '#fff'

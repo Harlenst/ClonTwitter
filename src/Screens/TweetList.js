@@ -1,12 +1,14 @@
-import React, { useState, useCallback } from 'react'; // Importar useCallback
+// src/Screens/TweetList.js
+import React, { useState, useCallback } from 'react';
 import {
     View, FlatList, RefreshControl, ActivityIndicator,
     TouchableOpacity, Image, StyleSheet, SafeAreaView
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native'; // <--- IMPORTANTE
+import { useFocusEffect } from '@react-navigation/native';
 import { getFeedTweets } from '../Config/firebaseServices';
 import Header from '../Components/Header';
-import TweetItem from '../Components/TweetItem';
+import TweetItem from '../Components/TweetItem'; // We will create this next
+import { colors } from '../Styles/twitterStyles';
 
 const ICON_PENCIL = require('../Assets/icon_pencil.png');
 const PAGE_SIZE = 10;
@@ -14,15 +16,29 @@ const PAGE_SIZE = 10;
 const TweetList = ({ route, navigation }) => {
     const { profile } = route.params || {};
     const [tweets, setTweets] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    
+    // Distinct loading states
+    const [loading, setLoading] = useState(true);       // Initial full screen load
+    const [refreshing, setRefreshing] = useState(false); // Pull to refresh
+    const [paginating, setPaginating] = useState(false); // Infinite scroll (footer)
+
     const [lastDoc, setLastDoc] = useState(null);
     const [hasMore, setHasMore] = useState(true);
 
     const loadTweets = async (isRefresh = false) => {
         if (!profile?.id) return;
+        
+        // Prevent simultaneous loads
+        if (paginating || (loading && !isRefresh && tweets.length > 0)) return;
+
         try {
-            // Si es refresh, reseteamos variables clave antes de la llamada (opcional)
+            if (isRefresh) {
+                // If refreshing, reset pagination state
+                setHasMore(true); 
+            } else {
+                setPaginating(true);
+            }
+
             const cursor = isRefresh ? null : lastDoc;
             
             const { tweets: newTweets, lastVisible } = await getFeedTweets(
@@ -37,27 +53,31 @@ const TweetList = ({ route, navigation }) => {
                 setTweets(validTweets);
             } else {
                 setTweets(prev => {
+                    // Combine and filter duplicates by ID for safety
                     const combined = [...prev, ...validTweets];
                     return Array.from(new Map(combined.map(t => [t.id, t])).values());
                 });
             }
             
             setLastDoc(lastVisible);
+            // If fewer than PAGE_SIZE items returned, we reached the end
             setHasMore(newTweets.length === PAGE_SIZE);
+
         } catch (error) {
             console.error("Error loading tweets:", error);
         } finally {
             setLoading(false);
             setRefreshing(false);
+            setPaginating(false);
         }
     };
 
-    // --- REFRESCAR AL ENTRAR O VOLVER A LA PANTALLA ---
+    // Reload on focus (keeps feed fresh)
     useFocusEffect(
         useCallback(() => {
             if (profile?.id) {
-                // Cargamos en silencio (sin spinner de carga total si ya hay datos)
-                // o con spinner si prefieres. Aquí usamos refresh logic.
+                // If list is empty, show full loading. Otherwise, silent refresh.
+                if (tweets.length === 0) setLoading(true);
                 loadTweets(true); 
             }
         }, [profile?.id])
@@ -65,26 +85,38 @@ const TweetList = ({ route, navigation }) => {
 
     const onRefresh = () => {
         setRefreshing(true);
-        setLastDoc(null);
         loadTweets(true);
     };
 
     const onEndReached = () => {
-        if (!loading && hasMore && !refreshing) loadTweets(false);
+        // Only load more if not currently loading and if more data exists
+        if (!loading && !refreshing && !paginating && hasMore) {
+            loadTweets(false);
+        }
     };
 
-    // Spinner inicial solo si no hay tweets
+    // Footer Component (Pagination Spinner)
+    const renderFooter = () => {
+        if (!paginating) return <View style={{ height: 20 }} />; // Bottom spacer
+        return (
+            <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+        );
+    };
+
+    // Initial Loading Spinner (Full Screen)
     if (loading && tweets.length === 0) {
         return (
             <View style={[localStyles.container, { justifyContent: 'center' }]}>
-                <ActivityIndicator size="large" color="#1DA1F2" />
+                <ActivityIndicator size="large" color={colors.primary} />
             </View>
         );
     }
 
     return (
         <SafeAreaView style={localStyles.container}>
-            <Header navigation={navigation} profile={profile} title="Inicio" />
+            <Header navigation={navigation} profile={profile} title="Home" />
             
             <FlatList
                 data={tweets}
@@ -100,13 +132,21 @@ const TweetList = ({ route, navigation }) => {
                 }}
                 keyExtractor={(item) => item?.id || Math.random().toString()}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1DA1F2']} />
+                    <RefreshControl 
+                        refreshing={refreshing} 
+                        onRefresh={onRefresh} 
+                        colors={[colors.primary]} 
+                        tintColor={colors.primary}
+                    />
                 }
                 onEndReached={onEndReached}
-                onEndReachedThreshold={0.5}
+                onEndReachedThreshold={0.3} // Load when 30% from bottom
+                ListFooterComponent={renderFooter}
                 ItemSeparatorComponent={() => <View style={localStyles.separator} />}
+                contentContainerStyle={tweets.length === 0 ? { flex: 1 } : null}
             />
 
+            {/* FAB (Floating Action Button) */}
             <TouchableOpacity
                 style={localStyles.fab}
                 onPress={() => navigation.navigate('PostTweet', { profile })}
@@ -130,7 +170,7 @@ const localStyles = StyleSheet.create({
         position: 'absolute',
         right: 20,
         bottom: 20,
-        backgroundColor: '#1DA1F2',
+        backgroundColor: colors.primary,
         width: 56,
         height: 56,
         borderRadius: 28,

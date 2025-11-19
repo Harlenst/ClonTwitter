@@ -4,13 +4,12 @@ import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, Style
 import { Searchbar, Avatar, Button, List } from 'react-native-paper';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
-// --- Importaciones de la Configuración ---
+// --- Configuration Imports ---
 import { db } from '../Config/firebaseConfig';
 import { followUser, unfollowUser } from '../Config/firebaseServices'; 
 import { colors } from '../Styles/twitterStyles';
 
-// === USAMOS TUS IMÁGENES LOCALES ===
-// Asegúrate de que esta ruta sea correcta según tu estructura
+// === ASSETS ===
 const ICON_SEARCH = require('../Assets/icon_search.png'); 
 
 const SearchProfiles = ({ route, navigation }) => {
@@ -20,11 +19,13 @@ const SearchProfiles = ({ route, navigation }) => {
     const [loading, setLoading] = useState(false);
     const [debouncedQuery, setDebouncedQuery] = useState('');
 
+    // Debounce (wait for user to stop typing)
     useEffect(() => {
         const timer = setTimeout(() => setDebouncedQuery(searchQuery), 400);
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
+    // Firestore Search
     useEffect(() => {
         const searchUsers = async () => {
             if (!debouncedQuery.trim()) {
@@ -34,6 +35,7 @@ const SearchProfiles = ({ route, navigation }) => {
             setLoading(true);
             try {
                 const searchLower = debouncedQuery.toLowerCase().trim();
+                // Create prefixes (simple method)
                 const prefixes = Array.from(
                     { length: Math.min(searchLower.length, 10) },
                     (_, i) => searchLower.substring(0, i + 1)
@@ -61,11 +63,13 @@ const SearchProfiles = ({ route, navigation }) => {
         searchUsers();
     }, [debouncedQuery, current?.id]);
 
+    // Follow/Unfollow Logic
     const toggleFollow = async (target) => {
         if (!current?.id) return;
         const isFollowing = Array.isArray(current.following) && current.following.includes(target.id);
 
         try {
+            // Optimistic update (Update UI first)
             if (isFollowing) {
                 current.following = current.following.filter(id => id !== target.id);
                 await unfollowUser(current.id, target.id);
@@ -73,9 +77,11 @@ const SearchProfiles = ({ route, navigation }) => {
                 current.following = [...(current.following || []), target.id];
                 await followUser(current.id, target.id);
             }
+            
+            // Force re-render
             setResults(prev => [...prev]);
         } catch (e) {
-            Alert.alert('Error', 'No se pudo actualizar el seguimiento');
+            Alert.alert('Error', 'Could not update follow status');
         }
     };
 
@@ -92,7 +98,7 @@ const SearchProfiles = ({ route, navigation }) => {
                 activeOpacity={0.7}
             >
                 <List.Item
-                    title={item.fullName || 'Sin nombre'}
+                    title={item.fullName || 'No Name'}
                     description={`@${item.username}`}
                     titleStyle={{ fontWeight: 'bold', fontSize: 16, color: '#0F1419' }}
                     descriptionStyle={{ color: '#536471' }}
@@ -123,7 +129,7 @@ const SearchProfiles = ({ route, navigation }) => {
                                         isFollowing ? styles.followingBtn : styles.notFollowingBtn
                                     ]}
                                 >
-                                    {isFollowing ? 'Siguiendo' : 'Seguir'}
+                                    {isFollowing ? 'Following' : 'Follow'}
                                 </Button>
                             )}
                         </View>
@@ -136,28 +142,28 @@ const SearchProfiles = ({ route, navigation }) => {
 
     return (
         <View style={styles.container}>
-            {/* Header personalizado */}
+            {/* Custom Header with Search Bar */}
             <View style={styles.headerContainer}>
                 
-                {/* 1. Botón Volver (Texto simple, sin íconos rotos) */}
+                {/* 1. Back Button (Simple text to avoid icon issues) */}
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Text style={styles.backText}>← Volver</Text>
+                    <Text style={styles.backText}>← Back</Text>
                 </TouchableOpacity>
 
-                {/* 2. Barra de búsqueda */}
+                {/* 2. Search Bar */}
                 <View style={{ flex: 1 }}>
                     <Searchbar
-                        placeholder="Buscar..."
+                        placeholder="Search..."
                         onChangeText={setSearchQuery}
                         value={searchQuery}
-                        // Reemplazamos el icono vectorial por tu IMAGEN PNG
+                        // Use your local PNG icon instead of vector icon
                         icon={() => (
                             <Image 
                                 source={ICON_SEARCH} 
                                 style={{ width: 20, height: 20, tintColor: '#536471' }} 
                             />
                         )}
-                        // Quitamos el icono de borrar (X) para que no salga el cuadro roto
+                        // Remove the clear (X) icon to avoid broken box issue
                         clearIcon={() => null}
                         
                         style={styles.searchbar}
@@ -180,7 +186,7 @@ const SearchProfiles = ({ route, navigation }) => {
                     keyboardShouldPersistTaps="handled"
                     ListEmptyComponent={
                         debouncedQuery.trim() ? (
-                            <Text style={styles.emptyText}>No se encontraron resultados</Text>
+                            <Text style={styles.emptyText}>No results found for "{searchQuery}"</Text>
                         ) : null
                     }
                 />
@@ -189,6 +195,7 @@ const SearchProfiles = ({ route, navigation }) => {
     );
 };
 
+// Local Styles
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -208,19 +215,18 @@ const styles = StyleSheet.create({
     },
     backText: {
         fontSize: 16,
-        color: colors.primary, // Usa el color azul de tu marca
+        color: colors.primary, // Use theme color
         fontWeight: '500',
     },
     searchbar: {
-        borderRadius: 30,
-        backgroundColor: '#EFF3F4',
-        height: 40, // Un poco más compacta
-        elevation: 0,
+        borderRadius: 30, // Twitter style roundness
+        backgroundColor: '#EFF3F4', // Very light gray
+        height: 44,
     },
     searchInput: {
-        minHeight: 0,
+        minHeight: 0, // Fix for text centering on Android
         fontSize: 15,
-        alignSelf: 'center',
+        alignSelf: 'center', // Alignment fix
     },
     listItem: {
         paddingVertical: 4,
@@ -231,7 +237,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
     },
     notFollowingBtn: {
-        backgroundColor: '#0F1419',
+        backgroundColor: '#0F1419', // Twitter Black
         borderColor: '#0F1419',
     },
     followingBtn: {

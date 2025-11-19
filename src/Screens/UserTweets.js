@@ -7,7 +7,7 @@ import {
 import { collection, query, where, orderBy, limit, startAfter, getDocs } from 'firebase/firestore';
 import { db } from '../Config/firebaseConfig';
 
-// Componentes
+// Components
 import Header from '../Components/Header';
 import { colors } from '../Styles/twitterStyles';
 
@@ -20,24 +20,25 @@ const AVATAR_FALLB = require('../Assets/default_avatar.png');
 
 const PAGE_SIZE = 10;
 
-// Helper de fecha corto (Estilo Twitter: "5m", "2h", "18 nov")
+// Short date helper (Twitter Style: "5m", "2h", "18 Nov")
 const formatTimeShort = (ts) => {
   let d = ts?.toDate ? ts.toDate() : ts;
   if (!d) return '';
   const now = new Date();
-  const diff = (now - d) / 1000; // segundos
+  const diff = (now - d) / 1000; // seconds
   
-  if (diff < 60) return 'Justo ahora';
+  if (diff < 60) return 'Just now';
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   
   const day = d.getDate();
-  const month = d.toLocaleString('es-ES', { month: 'short' });
+  // Changed locale to en-US for English month names
+  const month = d.toLocaleString('en-US', { month: 'short' });
   return `${day} ${month}`;
 };
 
 export default function UserTweets({ route, navigation }) {
-  const { user, profile } = route.params; // 'user' es el dueño del perfil que vemos
+  const { user, profile } = route.params; // 'user' is the owner of the profile we are viewing
   const [tweets, setTweets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,9 +69,9 @@ export default function UserTweets({ route, navigation }) {
     } catch (e) {
       console.error(e);
       if (tweets.length === 0) {
-         // Solo mostramos error si falla la carga inicial
-         // (Ocultamos errores de paginación silenciosa)
-         // Alert.alert('Nota', 'No se pudieron cargar tweets recientes.');
+         // Only show error if initial load fails
+         // (Hide silent pagination errors)
+         // Alert.alert('Note', 'Could not load recent tweets.');
       }
     } finally {
       setLoading(false);
@@ -86,13 +87,13 @@ export default function UserTweets({ route, navigation }) {
     load(true);
   }, [user.id]);
 
-  // === RENDERIZADO DEL TWEET ===
+  // === TWEET RENDERING ===
   const renderTweet = ({ item }) => {
-    const authorName = item.authorName || user.fullName || 'Anónimo';
-    const handle = item.authorUsername || user.username || 'usuario';
+    const authorName = item.authorName || user.fullName || 'Anonymous';
+    const handle = item.authorUsername || user.username || 'user';
     const timeAgo = formatTimeShort(item.timestamp);
     
-    // Avatar del autor del tweet (en este caso, el usuario del perfil)
+    // Avatar of the tweet author (in this case, the profile user)
     const avatarSource = user.profileImage 
         ? { uri: user.profileImage } 
         : AVATAR_FALLB;
@@ -103,15 +104,15 @@ export default function UserTweets({ route, navigation }) {
         style={styles.tweetContainer}
         onPress={() => navigation.navigate('TweetDetail', { tweet: item, profile })}
       >
-        {/* COLUMNA IZQUIERDA: AVATAR */}
+        {/* LEFT COLUMN: AVATAR */}
         <View style={styles.avatarColumn}>
           <Image source={avatarSource} style={styles.avatar} />
         </View>
 
-        {/* COLUMNA DERECHA: CONTENIDO */}
+        {/* RIGHT COLUMN: CONTENT */}
         <View style={styles.contentColumn}>
           
-          {/* HEADER: Nombre + Handle + Fecha */}
+          {/* HEADER: Name + Handle + Date */}
           <View style={styles.headerRow}>
             <Text style={styles.nameText} numberOfLines={1}>{authorName}</Text>
             <Text style={styles.handleText} numberOfLines={1}>@{handle}</Text>
@@ -119,15 +120,15 @@ export default function UserTweets({ route, navigation }) {
             <Text style={styles.timeText}>{timeAgo}</Text>
           </View>
 
-          {/* TEXTO */}
+          {/* TEXT */}
           <Text style={styles.tweetText}>{item.text}</Text>
 
-          {/* IMAGEN (Si existe) */}
+          {/* IMAGE (If exists) */}
           {item.imageUrl && (
             <Image source={{ uri: item.imageUrl }} style={styles.tweetImage} />
           )}
 
-          {/* CITA (QUOTED TWEET) */}
+          {/* QUOTE (QUOTED TWEET) */}
           {item.quotedTweet && (
             <View style={styles.quotedContainer}>
                 <View style={styles.quotedHeader}>
@@ -142,7 +143,7 @@ export default function UserTweets({ route, navigation }) {
             </View>
           )}
 
-          {/* ACCIONES */}
+          {/* ACTIONS */}
           <View style={styles.actionsRow}>
             <View style={styles.actionItem}>
               <Image source={ICON_REPLY} style={styles.actionIcon} />
@@ -181,7 +182,7 @@ export default function UserTweets({ route, navigation }) {
           renderItem={renderTweet}
           keyExtractor={(i) => i.id}
           contentContainerStyle={{ paddingBottom: 20 }}
-          // Línea divisoria entre tweets (Estilo Twitter)
+          // Divider line between tweets (Twitter Style)
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
             <RefreshControl
@@ -205,8 +206,8 @@ export default function UserTweets({ route, navigation }) {
           ListEmptyComponent={
              !loading && (
                 <View style={styles.emptyContainer}>
-                   <Text style={styles.emptyTitle}>Sin tweets aún</Text>
-                   <Text style={styles.emptySub}>Cuando @{user.username} publique algo, aparecerá aquí.</Text>
+                   <Text style={styles.emptyTitle}>No tweets yet</Text>
+                   <Text style={styles.emptySub}>When @{user.username} posts something, it will appear here.</Text>
                 </View>
              )
           }
@@ -216,7 +217,7 @@ export default function UserTweets({ route, navigation }) {
   );
 }
 
-// === ESTILOS LOCALES (DISEÑO PLANO / FLAT) ===
+// === LOCAL STYLES (FLAT DESIGN) ===
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
   },
   contentColumn: {
     flex: 1,
-    paddingRight: 4, // Espacio extra derecha
+    paddingRight: 4, // Extra right space
   },
   headerRow: {
     flexDirection: 'row',
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
     backgroundColor: '#F7F9F9',
   },
-  // ESTILOS DE CITA
+  // QUOTE STYLES
   quotedContainer: {
     borderWidth: 1,
     borderColor: '#CFD9DE',
@@ -324,7 +325,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     resizeMode: 'cover',
   },
-  // ACCIONES
+  // ACTIONS
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -348,7 +349,7 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: 1,
-    backgroundColor: '#EFF3F4', // Línea divisoria muy sutil
+    backgroundColor: '#EFF3F4', // Very subtle divider line
   },
   // EMPTY STATE
   emptyContainer: {

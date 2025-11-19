@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Alert } from 'react-native';
+import { 
+  View, Text, TouchableOpacity, Image, StyleSheet, Alert, Share 
+} from 'react-native';
 import { toggleLikeTweet, toggleRetweet } from '../Config/firebaseServices';
 
 // === ASSETS ===
@@ -10,9 +12,8 @@ const ICON_SHARE   = require('../Assets/icon_share.png');
 const AVATAR_FALLB = require('../Assets/default_avatar.png');
 
 const formatTimeShort = (ts) => {
-    let d = ts?.toDate ? ts.toDate() : ts;
-    if (!d) return '';
-    if (typeof d === 'number') d = new Date(d);
+    if (!ts) return '';
+    let d = ts?.toDate ? ts.toDate() : new Date(ts);
     const now = new Date();
     const diff = (now - d) / 1000;
     if (diff < 60) return 'Justo ahora';
@@ -25,6 +26,7 @@ const formatTimeShort = (ts) => {
 
 const TweetItem = ({ item, profile, navigation }) => {
     const userId = profile?.id;
+    
     const [liked, setLiked] = useState(false);
     const [likesCount, setLikesCount] = useState(0);
     const [retweeted, setRetweeted] = useState(false);
@@ -57,11 +59,10 @@ const TweetItem = ({ item, profile, navigation }) => {
         }
     };
 
-    // --- LÓGICA DE RETWEET / CITAR ---
-    const handleRetweetAction = () => {
+    const handleRetweetPress = () => {
         Alert.alert(
             'Retweet',
-            'Selecciona una opción',
+            '¿Qué deseas hacer?',
             [
                 { text: 'Cancelar', style: 'cancel' },
                 { 
@@ -70,14 +71,14 @@ const TweetItem = ({ item, profile, navigation }) => {
                 },
                 { 
                     text: retweeted ? 'Deshacer Retweet' : 'Retweet', 
-                    onPress: performSimpleRetweet 
+                    onPress: handleSimpleRetweet 
                 },
             ],
             { cancelable: true }
         );
     };
 
-    const performSimpleRetweet = async () => {
+    const handleSimpleRetweet = async () => {
         if (!userId) return;
         const prevRt = retweeted;
         const prevCount = rtCount;
@@ -91,121 +92,180 @@ const TweetItem = ({ item, profile, navigation }) => {
         }
     };
 
+    const handleShare = async () => {
+        try {
+            await Share.share({
+                message: `Mira este tweet de @${item.authorUsername}: ${item.text}`,
+            });
+        } catch (error) { console.log(error); }
+    };
+
     const goToDetail = () => {
         navigation.navigate('TweetDetail', { tweet: item, profile });
     };
 
-    if (!item) return null;
-
-    // Renderizado del Tweet Citado (Si existe)
-    const renderQuotedTweet = () => {
-        const quote = item.quotedTweet;
-        if (!quote) return null;
-
-        return (
-            <TouchableOpacity 
-                style={styles.quoteContainer} 
-                activeOpacity={0.8}
-                onPress={() => navigation.navigate('TweetDetail', { tweet: quote, profile })}
-            >
-                <View style={styles.quoteHeader}>
-                    <Image source={AVATAR_FALLB} style={styles.quoteAvatar} />
-                    <Text style={styles.quoteName} numberOfLines={1}>{quote.authorName}</Text>
-                    <Text style={styles.quoteHandle} numberOfLines={1}>@{quote.authorUsername}</Text>
-                </View>
-                <Text style={styles.quoteText} numberOfLines={4}>{quote.text}</Text>
-                {quote.imageUrl && (
-                    <Image source={{ uri: quote.imageUrl }} style={styles.quoteImage} />
-                )}
-            </TouchableOpacity>
-        );
+    // --- NUEVA FUNCIÓN: IR AL PERFIL DEL AUTOR ---
+    const goToProfile = () => {
+        // Construimos un objeto usuario con los datos que tenemos en el tweet
+        const targetUser = {
+            id: item.authorId,
+            username: item.authorUsername,
+            fullName: item.authorName,
+            // Si guardaras la foto en el tweet, la pasarías aquí también
+        };
+        // Navegamos a ViewProfile pasando 'user' (destino) y 'profile' (yo)
+        navigation.navigate('ViewProfile', { user: targetUser, profile });
     };
 
-    const likeColor = liked ? '#E0245E' : '#657786';
-    const rtColor = retweeted ? '#17BF63' : '#657786';
+    if (!item) return null;
+
+    const name = item.authorName || 'Anónimo';
+    const handle = item.authorUsername || 'usuario';
+    const hasMedia = !!item.imageUrl;
+    const hasQuote = !!item.quotedTweet; 
+
+    const likeColor = liked ? '#F91880' : '#657786'; 
+    const rtColor = retweeted ? '#00BA7C' : '#657786'; 
 
     return (
-        <TouchableOpacity activeOpacity={0.7} style={styles.tweetContainer} onPress={goToDetail}>
-            <View style={styles.avatarContainer}>
-                <Image source={AVATAR_FALLB} style={styles.avatar} />
+        <TouchableOpacity activeOpacity={0.7} style={styles.container} onPress={goToDetail}>
+            
+            {/* LADO IZQUIERDO: AVATAR (Ahora Clickable) */}
+            <View style={styles.avatarColumn}>
+                <TouchableOpacity onPress={goToProfile}>
+                    <Image source={AVATAR_FALLB} style={styles.avatar} />
+                </TouchableOpacity>
             </View>
 
-            <View style={styles.contentContainer}>
-                <View style={styles.headerRow}>
-                    <Text style={styles.nameText} numberOfLines={1}>{item.authorName}</Text>
-                    <Text style={styles.handleText} numberOfLines={1}>@{item.authorUsername}</Text>
-                    <Text style={styles.dotSeparator}>·</Text>
-                    <Text style={styles.timeText}>{formatTimeShort(item.timestamp)}</Text>
+            {/* LADO DERECHO: CONTENIDO */}
+            <View style={styles.contentColumn}>
+                
+                {/* Encabezado: Nombre (Clickable) + Fecha */}
+                <View style={styles.header}>
+                    <TouchableOpacity 
+                        style={{ flexDirection: 'row', flexShrink: 1, alignItems: 'center' }}
+                        onPress={goToProfile}
+                    >
+                        <Text style={styles.name} numberOfLines={1}>{name}</Text>
+                        <Text style={styles.handle} numberOfLines={1}>@{handle}</Text>
+                    </TouchableOpacity>
+                    
+                    <Text style={styles.dot}>·</Text>
+                    <Text style={styles.time}>{formatTimeShort(item.timestamp)}</Text>
                 </View>
 
-                {/* Texto del Tweet Principal */}
-                <Text style={styles.tweetText}>{item.text}</Text>
+                {/* Texto */}
+                {item.text ? <Text style={styles.text}>{item.text}</Text> : null}
 
-                {/* Imagen del Tweet Principal */}
-                {item.imageUrl && (
-                    <Image source={{ uri: item.imageUrl }} style={styles.tweetImage} />
+                {/* Imagen */}
+                {hasMedia && (
+                    <Image source={{ uri: item.imageUrl }} style={styles.media} />
                 )}
 
-                {/* --- TWEET CITADO (Nested) --- */}
-                {renderQuotedTweet()}
+                {/* Cita */}
+                {hasQuote && (
+                    <TouchableOpacity 
+                        style={styles.quoteContainer} 
+                        onPress={() => navigation.navigate('TweetDetail', { tweet: item.quotedTweet, profile })}
+                    >
+                        <View style={styles.quoteHeader}>
+                            <Image source={AVATAR_FALLB} style={styles.quoteAvatar} />
+                            <Text style={styles.quoteName} numberOfLines={1}>{item.quotedTweet.authorName}</Text>
+                            <Text style={styles.quoteHandle} numberOfLines={1}>@{item.quotedTweet.authorUsername}</Text>
+                        </View>
+                        <Text style={styles.quoteText} numberOfLines={3}>{item.quotedTweet.text}</Text>
+                        {item.quotedTweet.imageUrl && (
+                             <Image source={{ uri: item.quotedTweet.imageUrl }} style={styles.quoteImage} />
+                        )}
+                    </TouchableOpacity>
+                )}
 
-                {/* Acciones */}
-                <View style={styles.actionsRow}>
-                    <TouchableOpacity style={styles.actionButton} onPress={goToDetail}>
+                {/* Botones */}
+                <View style={styles.actionsBar}>
+                    <TouchableOpacity style={styles.actionBtn} onPress={goToDetail}>
                         <Image source={ICON_REPLY} style={styles.actionIcon} />
-                        <Text style={styles.actionCount}>{item.replies || 0}</Text>
+                        <Text style={styles.actionText}>{item.replies || 0}</Text>
                     </TouchableOpacity>
 
-                    {/* Botón Retweet abre el menú */}
-                    <TouchableOpacity style={styles.actionButton} onPress={handleRetweetAction}>
+                    <TouchableOpacity style={styles.actionBtn} onPress={handleRetweetPress}>
                         <Image source={ICON_REPEAT} style={[styles.actionIcon, { tintColor: rtColor }]} />
-                        <Text style={[styles.actionCount, { color: rtColor }]}>
+                        <Text style={[styles.actionText, { color: rtColor }]}>
                             {rtCount > 0 ? rtCount : ''}
                         </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
+                    <TouchableOpacity style={styles.actionBtn} onPress={handleLike}>
                         <Image source={ICON_HEART} style={[styles.actionIcon, { tintColor: likeColor }]} />
-                        <Text style={[styles.actionCount, { color: likeColor }]}>
+                        <Text style={[styles.actionText, { color: likeColor }]}>
                             {likesCount > 0 ? likesCount : ''}
                         </Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.actionButton}>
+                    <TouchableOpacity style={styles.actionBtn} onPress={handleShare}>
                         <Image source={ICON_SHARE} style={styles.actionIcon} />
                     </TouchableOpacity>
                 </View>
+
             </View>
         </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
-    tweetContainer: { flexDirection: 'row', padding: 12, backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#EFF3F4' },
-    avatarContainer: { marginRight: 12 },
-    avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#ccc' },
-    contentContainer: { flex: 1 },
-    headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2, flexWrap: 'wrap' },
-    nameText: { fontWeight: 'bold', fontSize: 15, color: '#14171A', marginRight: 4 },
-    handleText: { color: '#657786', fontSize: 14, marginRight: 4, flexShrink: 1 },
-    dotSeparator: { color: '#657786', fontSize: 14, marginRight: 4 },
-    timeText: { color: '#657786', fontSize: 14 },
-    tweetText: { fontSize: 15, color: '#14171A', lineHeight: 20, marginTop: 2, marginBottom: 8 },
-    tweetImage: { width: '100%', height: 200, borderRadius: 12, marginTop: 8, marginBottom: 8, resizeMode: 'cover', backgroundColor: '#F5F8FA' },
-    
-    // Estilos de Cita
-    quoteContainer: { marginTop: 4, marginBottom: 8, borderWidth: 1, borderColor: '#E1E8ED', borderRadius: 12, padding: 12, overflow: 'hidden' },
+    container: {
+        flexDirection: 'row',
+        padding: 12,
+        backgroundColor: '#fff',
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#EFF3F4',
+    },
+    avatarColumn: { marginRight: 12 },
+    avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#cfd9de' },
+    contentColumn: { flex: 1 },
+    header: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+    name: { fontWeight: 'bold', fontSize: 15, color: '#0F1419', marginRight: 4 },
+    handle: { fontSize: 14, color: '#536471', marginRight: 4, flexShrink: 1 },
+    dot: { fontSize: 14, color: '#536471', marginRight: 4 },
+    time: { fontSize: 14, color: '#536471' },
+    text: { fontSize: 15, color: '#0F1419', lineHeight: 20, marginBottom: 8 },
+    media: { width: '100%', height: 200, borderRadius: 12, marginBottom: 8, resizeMode: 'cover', backgroundColor: '#F5F8FA' },
+    quoteContainer: {
+        borderWidth: 1, 
+        borderColor: '#CFD9DE', 
+        borderRadius: 12, 
+        padding: 12, 
+        marginBottom: 8,
+        overflow: 'hidden'
+    },
     quoteHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-    quoteAvatar: { width: 18, height: 18, borderRadius: 9, marginRight: 6, backgroundColor: '#ccc' },
-    quoteName: { fontWeight: 'bold', fontSize: 14, color: '#14171A', marginRight: 4 },
-    quoteHandle: { fontSize: 13, color: '#657786' },
-    quoteText: { fontSize: 14, color: '#14171A', lineHeight: 18 },
+    quoteAvatar: { width: 16, height: 16, borderRadius: 8, marginRight: 6, backgroundColor: '#eee' },
+    quoteName: { fontWeight: 'bold', fontSize: 14, color: '#0F1419', marginRight: 4 },
+    quoteHandle: { fontSize: 13, color: '#536471' },
+    quoteText: { fontSize: 14, color: '#0F1419', lineHeight: 18 },
     quoteImage: { width: '100%', height: 120, borderRadius: 8, marginTop: 6, resizeMode: 'cover', backgroundColor: '#F5F8FA' },
-
-    actionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4, paddingRight: 20 },
-    actionButton: { flexDirection: 'row', alignItems: 'center', minWidth: 40 },
-    actionIcon: { width: 18, height: 18, tintColor: '#657786', marginRight: 4, resizeMode: 'contain' },
-    actionCount: { fontSize: 12, color: '#657786' },
+    actionsBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 4,
+        paddingRight: 32, 
+    },
+    actionBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        minWidth: 40,
+        paddingVertical: 4,
+    },
+    actionIcon: {
+        width: 16, 
+        height: 16,
+        tintColor: '#536471', 
+        marginRight: 4,
+        resizeMode: 'contain',
+    },
+    actionText: {
+        fontSize: 12,
+        color: '#536471',
+    },
 });
 
 export default TweetItem;

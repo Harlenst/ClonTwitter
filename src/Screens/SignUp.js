@@ -17,6 +17,7 @@ const SignUp = ({ navigation }) => {
   const [formValid, setFormValid] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Auto-generate username from email if empty
   useEffect(() => {
     if (email.includes('@') && username.trim().length < 3) {
       const generated = email
@@ -27,6 +28,7 @@ const SignUp = ({ navigation }) => {
     }
   }, [email]); 
 
+  // Form Validation
   useEffect(() => {
     const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     const isValid =
@@ -51,7 +53,7 @@ const SignUp = ({ navigation }) => {
   const handleSave = useCallback(async () => {
     if (loading) return; 
     if (!formValid) {
-      Alert.alert('Error', 'Completa todos los campos correctamente');
+      Alert.alert('Error', 'Please complete all required fields correctly');
       return;
     }
 
@@ -60,19 +62,19 @@ const SignUp = ({ navigation }) => {
 
     try {
       const profile = await createProfile(buildProfilePayload());
-      if (!profile?.id) throw new Error('No se pudo crear el perfil');
+      if (!profile?.id) throw new Error('Could not create profile');
       navigation.replace('TweetList', { profile });
     } catch (error) {
-      let msg = error?.message || 'No se pudo crear la cuenta';
+      let msg = error?.message || 'Account creation failed';
    
       if (msg === 'TIMEOUT_FIRESTORE') {
-        msg = 'No se logró conectar con Firestore en este momento. Revisa tu Internet e inténtalo de nuevo';
+        msg = 'Could not connect to Firestore at this time. Check your internet connection and try again.';
       } else if (/correo|email/i.test(msg)) {
-        msg = 'Este correo ya está en uso';
+        msg = 'This email is already in use';
       } else if (/usuario|username/i.test(msg)) {
-        msg = 'Este nombre de usuario no está disponible';
-      } else if (/Usuario no encontrado/i.test(msg)) {
-        msg = 'No fue posible validar la información. Inténtalo nuevamente';
+        msg = 'This username is not available';
+      } else if (/User not found/i.test(msg)) {
+        msg = 'Could not validate information. Please try again.';
       }
       Alert.alert('Error', msg);
     } finally {
@@ -86,12 +88,12 @@ const SignUp = ({ navigation }) => {
         contentContainerStyle={{ padding: 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.title}>Crear Cuenta</Text>
+        <Text style={styles.title}>Create Account</Text>
 
         <Card style={styles.card}>
           <Card.Content>
             <TextInput
-              label="* Nombre"
+              label="* First Name"
               value={name}
               onChangeText={setName}
               mode="outlined"
@@ -102,7 +104,7 @@ const SignUp = ({ navigation }) => {
             />
 
             <TextInput
-              label="* Apellido"
+              label="* Last Name"
               value={lastName}
               onChangeText={setLastName}
               mode="outlined"
@@ -126,7 +128,7 @@ const SignUp = ({ navigation }) => {
             />
 
             <TextInput
-              label="* Nombre de usuario"
+              label="* Username"
               value={username}
               onChangeText={setUsername}
               mode="outlined"
@@ -138,7 +140,7 @@ const SignUp = ({ navigation }) => {
             />
 
             <TextInput
-              label="* Contraseña (mín. 6 caracteres)"
+              label="* Password (min. 6 chars)"
               value={password}
               onChangeText={setPassword}
               mode="outlined"
@@ -157,7 +159,7 @@ const SignUp = ({ navigation }) => {
             />
 
             <TextInput
-              label="Teléfono"
+              label="Phone"
               value={phone}
               onChangeText={setPhone}
               mode="outlined"
@@ -167,7 +169,7 @@ const SignUp = ({ navigation }) => {
             />
 
             <TextInput
-              label="Descripción (opcional)"
+              label="Bio (optional)"
               value={description}
               onChangeText={setDescription}
               mode="outlined"
@@ -186,7 +188,7 @@ const SignUp = ({ navigation }) => {
               contentStyle={{ height: 50 }}
               labelStyle={{ fontWeight: '700' }}
             >
-              Registrarse
+              Sign Up
             </Button>
           </Card.Content>
         </Card>
