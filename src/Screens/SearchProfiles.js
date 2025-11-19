@@ -1,161 +1,249 @@
 // src/Screens/SearchProfiles.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
-import { Searchbar, Avatar, List, Button } from 'react-native-paper';
+import { View, Text, FlatList, ActivityIndicator, TouchableOpacity, Alert, StyleSheet, Image } from 'react-native';
+import { Searchbar, Avatar, Button, List } from 'react-native-paper';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db, followUser, unfollowUser } from '../Config/firebaseServices';
-import styles from '../Styles/stylesSearchProfiles';
-import twitterStyles, { colors } from '../Styles/twitterStyles';
+
+// --- Importaciones de la Configuración ---
+import { db } from '../Config/firebaseConfig';
+import { followUser, unfollowUser } from '../Config/firebaseServices'; 
+import { colors } from '../Styles/twitterStyles';
+
+// === USAMOS TUS IMÁGENES LOCALES ===
+// Asegúrate de que esta ruta sea correcta según tu estructura
+const ICON_SEARCH = require('../Assets/icon_search.png'); 
 
 const SearchProfiles = ({ route, navigation }) => {
-  const { profile: current } = route.params || {}; 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+    const { profile: current } = route.params || {}; 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 400);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedQuery(searchQuery), 400);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
-  useEffect(() => {
-    const searchUsers = async () => {
-      if (!debouncedQuery.trim()) {
-        setResults([]);
-        return;
-      }
-      setLoading(true);
-      try {
-        const searchLower = debouncedQuery.toLowerCase().trim();
-        const prefixes = Array.from(
-          { length: Math.min(searchLower.length, 10) },
-          (_, i) => searchLower.substring(0, i + 1)
-        );
+    useEffect(() => {
+        const searchUsers = async () => {
+            if (!debouncedQuery.trim()) {
+                setResults([]);
+                return;
+            }
+            setLoading(true);
+            try {
+                const searchLower = debouncedQuery.toLowerCase().trim();
+                const prefixes = Array.from(
+                    { length: Math.min(searchLower.length, 10) },
+                    (_, i) => searchLower.substring(0, i + 1)
+                );
 
-        const qUsers = query(
-          collection(db, 'users'),
-          where('keywords', 'array-contains-any', prefixes),
-          limit(20)
-        );
+                const qUsers = query(
+                    collection(db, 'users'),
+                    where('keywords', 'array-contains-any', prefixes),
+                    limit(20)
+                );
 
-        const snapshot = await getDocs(qUsers);
-        const users = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        setResults(users);
-      } catch (error) {
-        const msg = String(error?.message || '');
-        let human = 'No se pudo realizar la búsqueda';
-        if (/TIMEOUT_FIRESTORE/i.test(msg) || /Could not reach Cloud Firestore backend/i.test(msg)) {
-          human = 'Sin conexión con Firestore. Revisa Internet o intenta de nuevo';
+                const snapshot = await getDocs(qUsers);
+                const users = snapshot.docs
+                    .map(d => ({ id: d.id, ...d.data() }))
+                    .filter(user => user.id !== current?.id); 
+                
+                setResults(users);
+            } catch (error) {
+                console.log('Error searching users:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        searchUsers();
+    }, [debouncedQuery, current?.id]);
+
+    const toggleFollow = async (target) => {
+        if (!current?.id) return;
+        const isFollowing = Array.isArray(current.following) && current.following.includes(target.id);
+
+        try {
+            if (isFollowing) {
+                current.following = current.following.filter(id => id !== target.id);
+                await unfollowUser(current.id, target.id);
+            } else {
+                current.following = [...(current.following || []), target.id];
+                await followUser(current.id, target.id);
+            }
+            setResults(prev => [...prev]);
+        } catch (e) {
+            Alert.alert('Error', 'No se pudo actualizar el seguimiento');
         }
-        console.error('Error searching users:', error);
-        Alert.alert('Error', human);
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
     };
 
-    searchUsers();
-  }, [debouncedQuery]);
+    const renderUser = ({ item }) => {
+        const initials = item.fullName
+            ? item.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+            : '??';
 
-  const toggleFollow = async (target) => {
-    if (!current?.id) return Alert.alert('Error', 'Perfil no cargado');
-    if (current.id === target.id) return;
+        const isFollowing = Array.isArray(current?.following) && current.following.includes(item.id);
 
-    const isFollowing = Array.isArray(current.following) && current.following.includes(target.id);
-
-    try {
-      if (isFollowing) {
-        await unfollowUser(current.id, target.id);
-        current.following = current.following.filter(id => id !== target.id);
-      } else {
-        await followUser(current.id, target.id);
-        current.following = [...(current.following || []), target.id];
-      }
-      setResults(prev =>
-        prev.map(u =>
-          u.id === target.id ? { ...u } : u
-        )
-      );
-    } catch (e) {
-      Alert.alert('Error', e.message || 'No se pudo actualizar el seguimiento');
-    }
-  };
-
-  const renderUser = ({ item }) => {
-    const initials = item.fullName
-      ? item.fullName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-      : '??';
-
-    const isFollowing =
-      Array.isArray(current?.following) && current.following.includes(item.id);
+        return (
+            <TouchableOpacity
+                onPress={() => navigation.navigate('ViewProfile', { profile: current, user: item })}
+                activeOpacity={0.7}
+            >
+                <List.Item
+                    title={item.fullName || 'Sin nombre'}
+                    description={`@${item.username}`}
+                    titleStyle={{ fontWeight: 'bold', fontSize: 16, color: '#0F1419' }}
+                    descriptionStyle={{ color: '#536471' }}
+                    left={() => (
+                        <Avatar.Text 
+                            size={40} 
+                            label={initials} 
+                            style={{ backgroundColor: colors.primary }} 
+                            color="white"
+                        />
+                    )}
+                    right={() => (
+                        <View style={{ justifyContent: 'center', paddingRight: 8 }}>
+                             {current?.id && current.id !== item.id && (
+                                <Button
+                                    mode={isFollowing ? 'outlined' : 'contained'}
+                                    onPress={() => toggleFollow(item)}
+                                    compact
+                                    uppercase={false}
+                                    labelStyle={{ 
+                                        fontSize: 12, 
+                                        fontWeight: 'bold', 
+                                        marginHorizontal: 10,
+                                        color: isFollowing ? '#0F1419' : 'white'
+                                    }}
+                                    style={[
+                                        styles.followBtn, 
+                                        isFollowing ? styles.followingBtn : styles.notFollowingBtn
+                                    ]}
+                                >
+                                    {isFollowing ? 'Siguiendo' : 'Seguir'}
+                                </Button>
+                            )}
+                        </View>
+                    )}
+                    style={styles.listItem}
+                />
+            </TouchableOpacity>
+        );
+    };
 
     return (
-      <TouchableOpacity
-        onPress={() =>
-          navigation.navigate('ViewProfile', {
-            profile: current || item, 
-            user: item,             
-          })
-        }
-      >
-        <List.Item
-          title={item.fullName || 'Sin nombre'}
-          description={`@${item.username}`}
-          titleStyle={styles.resultName}
-          descriptionStyle={styles.resultHandle}
-          left={() => (
-            <Avatar.Text size={48} label={initials} style={styles.avatar} color="#fff" />
-          )}
-          right={() =>
-            current?.id && current.id !== item.id ? (
-              <Button
-                mode={isFollowing ? 'outlined' : 'contained'}
-                onPress={() => toggleFollow(item)}
-                compact
-              >
-                {isFollowing ? 'Siguiendo' : 'Seguir'}
-              </Button>
-            ) : null
-          }
-          style={styles.resultItem}
-        />
-      </TouchableOpacity>
+        <View style={styles.container}>
+            {/* Header personalizado */}
+            <View style={styles.headerContainer}>
+                
+                {/* 1. Botón Volver (Texto simple, sin íconos rotos) */}
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Text style={styles.backText}>← Volver</Text>
+                </TouchableOpacity>
+
+                {/* 2. Barra de búsqueda */}
+                <View style={{ flex: 1 }}>
+                    <Searchbar
+                        placeholder="Buscar..."
+                        onChangeText={setSearchQuery}
+                        value={searchQuery}
+                        // Reemplazamos el icono vectorial por tu IMAGEN PNG
+                        icon={() => (
+                            <Image 
+                                source={ICON_SEARCH} 
+                                style={{ width: 20, height: 20, tintColor: '#536471' }} 
+                            />
+                        )}
+                        // Quitamos el icono de borrar (X) para que no salga el cuadro roto
+                        clearIcon={() => null}
+                        
+                        style={styles.searchbar}
+                        inputStyle={styles.searchInput}
+                        placeholderTextColor="#536471"
+                        elevation={0}
+                        autoFocus
+                    />
+                </View>
+            </View>
+
+            {loading ? (
+                <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 20 }} />
+            ) : (
+                <FlatList 
+                    data={results} 
+                    renderItem={renderUser} 
+                    keyExtractor={item => item.id} 
+                    contentContainerStyle={{ paddingBottom: 20 }}
+                    keyboardShouldPersistTaps="handled"
+                    ListEmptyComponent={
+                        debouncedQuery.trim() ? (
+                            <Text style={styles.emptyText}>No se encontraron resultados</Text>
+                        ) : null
+                    }
+                />
+            )}
+        </View>
     );
-  };
-
-  return (
-    <View style={twitterStyles.container}>
-      <View style={styles.header}>
-        <Searchbar
-          placeholder="Buscar usuarios..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-          inputStyle={styles.searchInput}
-          iconColor={colors.textSecondary}
-          placeholderTextColor={colors.textSecondary}
-          theme={{ roundness: 12 }}
-          autoFocus
-        />
-      </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      ) : results.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>
-            {debouncedQuery ? 'No se encontraron usuarios' : 'Escribe para buscar'}
-          </Text>
-        </View>
-      ) : (
-        <FlatList data={results} renderItem={renderUser} keyExtractor={item => item.id} style={styles.resultsList} />
-      )}
-    </View>
-  );
 };
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#EFF3F4',
+    },
+    backButton: {
+        marginRight: 10,
+        padding: 5,
+    },
+    backText: {
+        fontSize: 16,
+        color: colors.primary, // Usa el color azul de tu marca
+        fontWeight: '500',
+    },
+    searchbar: {
+        borderRadius: 30,
+        backgroundColor: '#EFF3F4',
+        height: 40, // Un poco más compacta
+        elevation: 0,
+    },
+    searchInput: {
+        minHeight: 0,
+        fontSize: 15,
+        alignSelf: 'center',
+    },
+    listItem: {
+        paddingVertical: 4,
+        paddingHorizontal: 4,
+    },
+    followBtn: {
+        borderRadius: 20,
+        borderWidth: 1,
+    },
+    notFollowingBtn: {
+        backgroundColor: '#0F1419',
+        borderColor: '#0F1419',
+    },
+    followingBtn: {
+        backgroundColor: 'transparent',
+        borderColor: '#CFD9DE',
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 30,
+        color: '#536471',
+        fontSize: 16,
+    }
+});
 
 export default SearchProfiles;

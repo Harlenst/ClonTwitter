@@ -1,76 +1,147 @@
+// ./Styles/TweetListStyles.js
 import { StyleSheet } from 'react-native';
 import { colors, spacing, radii, shadow } from './twitterStyles';
 
 export default StyleSheet.create({
-  tweetCard: {
-    ...shadow.card,
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.sm,
-    borderRadius: radii.lg,
-    backgroundColor: colors.surface,
+  // Contenedor principal (SafeAreaView)
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
+
+  // Cada tweet (sin Card, solo separador inferior)
+  tweetContainer: {
+    ...shadow.none,
+    backgroundColor: colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderLight,
+  },
+
+  // Fila principal: avatar + contenido
   tweetContent: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    paddingHorizontal: spacing.md,    // 16
+    paddingTop: 12,
+    paddingBottom: 8,
+    minHeight: 72,
+  },
+
+  // Avatar
+  avatarContainer: {
+    marginRight: spacing.sm,          // 8px de separación
   },
   avatar: {
-    backgroundColor: colors.primary,
-    marginRight: spacing.md,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
+
+  // Cuerpo del tweet
   tweetBody: {
     flex: 1,
+    paddingRight: spacing.md,
+  },
+
+  // Header: Nombre + @handle + · + hora
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
   },
   authorName: {
-    color: colors.textPrimary,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '700',
+    marginRight: 4,
   },
-  authorHandle: {
+  handleText: {
     color: colors.textSecondary,
-    marginBottom: 4,
+    fontSize: 15,
+    marginRight: 4,
   },
+  dotSeparator: {
+    color: colors.textSecondary,
+    fontSize: 15,
+    marginRight: 4,
+  },
+  timeText: {
+    color: colors.textSecondary,
+    fontSize: 15,
+  },
+
+  // Texto del tweet
   tweetText: {
     color: colors.textPrimary,
     fontSize: 15,
-    marginBottom: spacing.sm,
+    lineHeight: 20,
+    marginTop: 3,
+    marginBottom: 8,
   },
-  tweetActions: {
+
+  // Imagen o video adjunto
+  mediaImage: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 16 / 9.5,   // Ratio típico de X
+    borderRadius: radii.lg,   // 16
+    marginTop: 12,
+    marginBottom: 12,
+  },
+
+  // Acciones (reply, retweet, like, share)
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+    paddingRight: 20,
+    maxWidth: '92%',
+  },
+  actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.xs,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 20,
   },
-  actionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: spacing.md,
+  actionIcon: {
+    width: 18,
+    height: 18,
+    tintColor: colors.textSecondary,
+    marginRight: 6,
   },
   actionCount: {
     color: colors.textSecondary,
     fontSize: 13,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    marginTop: 40,
-    paddingHorizontal: spacing.lg,
-  },
-  emptyText: {
-    color: colors.textPrimary,
-    fontSize: 18,
     fontWeight: '600',
-    textAlign: 'center',
   },
-  emptySubtext: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginVertical: spacing.sm,
+
+  // Like activo (cuando ya le diste like)
+  actionCountLiked: {
+    color: colors.like,
   },
-  followButton: {
+  actionIconLiked: {
+    tintColor: colors.like,
+  },
+
+  // Separador entre tweets (solo en FlatList)
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderLight,
+    marginLeft: 72, // alineado con el texto, no con el avatar
+  },
+
+  // FAB (botón flotante de nuevo tweet)
+  fab: {
+    position: 'absolute',
+    right: 16,
+    bottom: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: colors.primary,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-  },
-  followButtonText: {
-    color: colors.surface,
-    fontWeight: '700',
+    ...shadow.small,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

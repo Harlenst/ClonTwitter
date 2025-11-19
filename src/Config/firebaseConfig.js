@@ -1,19 +1,21 @@
 // src/Config/firebaseConfig.js
 import { initializeApp } from 'firebase/app';
-import {getFirestore} from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
-// Configuración del proyecto Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyDsTCZYTkhprPKmXXtiqYwnO0ty2XoTggI",
-  authDomain: "clontwitter-a0396.firebaseapp.com",
-  projectId: "clontwitter-a0396",
-  storageBucket: "clontwitter-a0396.firebasestorage.app",
-  messagingSenderId: "153825242281",
-  appId: "1:153825242281:web:6249ee5f7d60cf67208db8"
+  apiKey: "AIzaSyAeQFYDNMg7u5F8uFKsZes30q7LFj5xLk8",
+  authDomain: "clon-twitter-8f663.firebaseapp.com",
+  projectId: "clon-twitter-8f663",
+  storageBucket: "clon-twitter-8f663.firebasestorage.app",
+  messagingSenderId: "464315032792",
+  appId: "1:464315032792:web:661472f05d7841334723ad"
 };
 
-// Inicializar la app Firebase
 export const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// IMPORTANTE: initializeFirestore optimizado para React Native
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true, // Ayuda con problemas de conexión en Android
+});
 
 export default app;
